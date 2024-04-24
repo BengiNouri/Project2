@@ -1,7 +1,6 @@
 
 library(readr)
-cardata <- read_delim("Car_data4.csv", 
-                        delim = ";", escape_double = FALSE, trim_ws = TRUE)
+cardata <- read_csv("Car_data4.csv")
 View(Car_data4)
 
 library(dplyr)
@@ -131,10 +130,6 @@ cardata$closest_color <- sapply(cardata$Color, find_closest_color)
 
 
 
-
-
-
-
 # Assuming 'cardata' is your dataframe and 'Km driven' is the column of interest
 
 # Counting the zeros in the 'Km driven' column
@@ -153,16 +148,12 @@ zero_km_data <- cardata[cardata$`KM Driven` == 0, ]
 print(zero_km_data)
 
 
-
+#### 
 cardata$Price <- as.numeric(cardata$Price)
-
-  
 library(tidyverse)
-
 library(DataExplorer)
 
 plot_histogram(cardata$Price)
-
 plot_histogram(cardata)
 
 plot_bar(cardata)
