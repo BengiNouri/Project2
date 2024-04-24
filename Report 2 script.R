@@ -4,6 +4,21 @@ cardata <- read_delim("Car_data4.csv",
                         delim = ";", escape_double = FALSE, trim_ws = TRUE)
 View(Car_data4)
 
+library(dplyr)
+library(tidyr)
+
+# Assuming 'cardata' is your dataframe and 'Car Name' is the column of interest
+
+# Create two new columns 'Brand' and 'Model' by separating the 'Car Name' after the first space
+cardata <- cardata %>%
+  separate(`Car Name`, into = c("Brand", "Model"), sep = " ", extra = "merge")
+
+# Keep only the first word in the 'Model' column
+cardata <- cardata %>%
+  mutate(Model = word(Model, 1))
+
+# View the updated dataframe
+print(cardata)
 
 ########## Year --> Production year of the car
 
@@ -71,9 +86,6 @@ View(cardata)
 library(dplyr)
 library(stringdist)
 
-install.packages("stringdist")
-
-
 # Define a list of known color mappings
 known_colors <- c(
   "White" = "white|hv\\w*|pearl|flash|diamond|icy|nacre",
@@ -120,3 +132,75 @@ cardata$closest_color <- sapply(cardata$Color, find_closest_color)
 
 
 
+
+
+
+# Assuming 'cardata' is your dataframe and 'Km driven' is the column of interest
+
+# Counting the zeros in the 'Km driven' column
+zero_count <- sum(cardata$`KM Driven` == 0)
+
+# Printing the result
+print(paste("The number of zeros in 'Km driven' is:", zero_count))
+
+ 
+# Assuming 'cardata' is your dataframe and 'Km driven' is the column of interest
+
+# Creating a new dataframe that includes all columns, but only rows where 'Km driven' equals zero
+zero_km_data <- cardata[cardata$`KM Driven` == 0, ]
+
+# Displaying the new dataframe to check that it includes all variables from the original
+print(zero_km_data)
+
+
+
+cardata$Price <- as.numeric(cardata$Price)
+
+  
+library(tidyverse)
+
+library(DataExplorer)
+
+plot_histogram(cardata$Price)
+
+plot_histogram(cardata)
+
+plot_bar(cardata)
+
+
+library(plotly)
+library(dplyr)
+
+# Assuming 'cardata' is your dataframe, 'Brand' is the column with car brands, and 'Price' is the column of interest
+
+# Calculate mean, standard deviation, and median of the 'Price' column, ignoring NA values
+mean_price <- mean(cardata$Price, na.rm = TRUE)
+sd_price <- sd(cardata$Price, na.rm = TRUE)
+median_price <- median(cardata$Price, na.rm = TRUE)
+
+# Create a scatter plot for 'Price' with 'Brand' on the x-axis
+p <- plot_ly(cardata, x = ~Brand, y = ~Price, type = 'scatter', mode = 'markers', 
+             text = ~Brand, hoverinfo = 'text+y', marker = list(size = 5))
+
+# We will now create a separate data frame for the lines to ensure that we don't have a mismatch in vector sizes
+lines_data <- data.frame(Brand = unique(cardata$Brand))
+
+# Add horizontal lines for mean, mean+/-sd, and median
+# We'll add one line for each unique Brand, making sure the size matches the data
+p <- p %>% add_lines(data = lines_data, y = ~rep(mean_price, length(lines_data$Brand)), line = list(color = 'blue'), name = 'Mean')
+p <- p %>% add_lines(data = lines_data, y = ~rep(mean_price + sd_price, length(lines_data$Brand)), line = list(color = 'red', dash = 'dot'), name = 'Mean + SD')
+p <- p %>% add_lines(data = lines_data, y = ~rep(mean_price - sd_price, length(lines_data$Brand)), line = list(color = 'red', dash = 'dot'), name = 'Mean - SD')
+p <- p %>% add_lines(data = lines_data, y = ~rep(median_price, length(lines_data$Brand)), line = list(color = 'green', dash = 'dash'), name = 'Median')
+
+# Customizing layout
+p <- p %>% layout(title = 'Price Outlier Detection by Brand',
+                  xaxis = list(title = 'Brand', tickangle = -45),
+                  yaxis = list(title = 'Price'))
+
+# Make the plot interactive
+p
+
+
+summary(cardata$Price)
+
+(table(cardata$Brand))
