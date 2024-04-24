@@ -173,24 +173,24 @@ library(dplyr)
 
 # Assuming 'cardata' is your dataframe, 'Brand' is the column with car brands, and 'Price' is the column of interest
 
-# Calculate mean, standard deviation, and median of the 'Price' column, ignoring NA values
+# Calculate the mean, median, 1st quartile (25th percentile), 3rd quartile (75th percentile), and 90th percentile of the 'Price' column
 mean_price <- mean(cardata$Price, na.rm = TRUE)
-sd_price <- sd(cardata$Price, na.rm = TRUE)
 median_price <- median(cardata$Price, na.rm = TRUE)
+quantiles <- quantile(cardata$Price, probs = c(0.25, 0.75, 0.9), na.rm = TRUE)
+first_quartile <- quantiles[1]
+third_quartile <- quantiles[2]
+ninety_percentile <- quantiles[3]
 
 # Create a scatter plot for 'Price' with 'Brand' on the x-axis
-p <- plot_ly(cardata, x = ~Brand, y = ~Price, type = 'scatter', mode = 'markers', 
+p <- plot_ly(cardata, x = ~Brand, y = ~Price, type = 'scatter', mode = 'markers',
              text = ~Brand, hoverinfo = 'text+y', marker = list(size = 5))
 
-# We will now create a separate data frame for the lines to ensure that we don't have a mismatch in vector sizes
-lines_data <- data.frame(Brand = unique(cardata$Brand))
-
-# Add horizontal lines for mean, mean+/-sd, and median
-# We'll add one line for each unique Brand, making sure the size matches the data
-p <- p %>% add_lines(data = lines_data, y = ~rep(mean_price, length(lines_data$Brand)), line = list(color = 'blue'), name = 'Mean')
-p <- p %>% add_lines(data = lines_data, y = ~rep(mean_price + sd_price, length(lines_data$Brand)), line = list(color = 'red', dash = 'dot'), name = 'Mean + SD')
-p <- p %>% add_lines(data = lines_data, y = ~rep(mean_price - sd_price, length(lines_data$Brand)), line = list(color = 'red', dash = 'dot'), name = 'Mean - SD')
-p <- p %>% add_lines(data = lines_data, y = ~rep(median_price, length(lines_data$Brand)), line = list(color = 'green', dash = 'dash'), name = 'Median')
+# Add horizontal lines for the mean, median, 1st quartile, 3rd quartile, and 90th percentile
+p <- p %>% add_lines(y = ~first_quartile, line = list(color = 'orange'), name = '1st Quartile')
+p <- p %>% add_lines(y = ~third_quartile, line = list(color = 'orange'), name = '3rd Quartile')
+p <- p %>% add_lines(y = ~ninety_percentile, line = list(color = 'red'), name = '90th Percentile')
+p <- p %>% add_lines(y = ~mean_price, line = list(color = 'blue'), name = 'Mean')
+p <- p %>% add_lines(y = ~median_price, line = list(color = 'green'), name = 'Median')
 
 # Customizing layout
 p <- p %>% layout(title = 'Price Outlier Detection by Brand',
@@ -201,6 +201,5 @@ p <- p %>% layout(title = 'Price Outlier Detection by Brand',
 p
 
 
-summary(cardata$Price)
 
 (table(cardata$Brand))
