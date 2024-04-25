@@ -242,7 +242,8 @@ cardata$'Digital Instrumentering' <- NULL
 cardata$'Electronic Trunk Opener'  <- NULL
 cardata$Color = NULL
 cardata$`Electronic Trunck Opener`= NULL 
-cardata$`El-Ruder`= NULL
+cardata$`El-Ruder`= NULL¨
+cardata$Variant= NULL
 ```
 
 ### Creating a new variable based for the Range (eletric) variable 
@@ -273,7 +274,7 @@ plot_histogram(cardata)
 ```
 
 
-### Lumping method to delete cars that appears less than 50 times based on the brand 
+### Lumping method to delete cars that appears less than 45 times based on the brand 
 
 ```{r}
 library(dplyr)
@@ -336,7 +337,7 @@ third_quartile <- quantiles[2]
 OutlierUpper <- third_quartile + (1.5 * (third_quartile - first_quartile))
 OutlierLower <- first_quartile - (1.5 * (third_quartile - first_quartile))
 cardata <- cardata %>%
-  filter(Price < OutlierUpper)
+  filtergc
 
 
 # Create a scatter plot for 'Price' with 'Brand' on the x-axis
@@ -430,5 +431,8 @@ print(head(fuel_data_el))
 
 ```
 
+###
+```{r}
 
+```
 
