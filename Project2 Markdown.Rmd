@@ -319,9 +319,6 @@ cardata <- cardata %>%
 # Now let's see the cleaned-up table for Fuel_Type
 sort(table(cardata$Fuel_Type))
 
-
-
-
 ```
 ### Detecting outliers by brand 
 ```{r}
@@ -415,8 +412,22 @@ scatter_plot <- ggplot(cardata, aes(x = Year, y = Price)) +
 scatter_plot
 ```
 
+### Data seperation between fuel type and range 
+#### PS slet de data, som tilhøre de respektive andele for de nye data. 
 
 ```{r}
+#Assuming 'cardata' is your original dataframe
+#Create a new dataset for fuel types Benzin, Diesel, and Hybrid
+car_data_bdh <- cardata %>%
+  filter(Fuel_Type %in% c("Benzin", "Diesel", "Hybrid"))
+
+#Create a new dataset for fuel type El (Electric)
+car_data_el <- cardata %>%
+  filter(Fuel_Type == "El")
+
+#You can check the first few rows of each dataset to confirm
+print(head(fuel_data_bdh))
+print(head(fuel_data_el))
 
 ```
 
