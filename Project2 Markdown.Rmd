@@ -53,17 +53,37 @@ cardata <- cardata[cardata$`Car Name` != "Renault Twingo 1,2 16V Authentique ECO
 ```{r}
 library(tidyr)
 library(tidyverse)
-# Create two new columns 'Brand' and 'Model' by separating the 'Car Name' after the first space
-# Create two new columns 'Brand' and 'Model' by separating the 'Car Name' after the first space
+library(tidyr)
+library(dplyr)
+library(stringr)
+
+# Read the data (assuming the dataframe is named 'cardata')
+
+# Separate the 'Car Name' into 'Brand' and 'Model' with additional details
 cardata <- cardata %>%
   separate(`Car Name`, into = c("Brand", "Model"), sep = " ", extra = "merge")
 
-# Keep only the first word in the 'Model' column
+# Function to handle Tesla brand exception
+clean_model <- function(brand, model) {
+  if (brand == "Tesla") {
+    # Match the model to either 'Model 3', 'Model Y', 'Model S', or 'Model X'
+    matched_model <- str_match(model, "(Model 3|Model Y|Model S|Model X)")[1]
+    if (!is.na(matched_model)) {
+      return(matched_model)
+    }
+  }
+  # Default case for non-Tesla or when no Tesla model is matched
+  return(word(model, 1))
+}
+
+# Apply the function to the 'Model' column to keep the exception for Tesla
 cardata <- cardata %>%
-  mutate(Model = word(Model, 1))
+  rowwise() %>%
+  mutate(Model = clean_model(Brand, Model))
 
 # View the updated dataframe
 print(cardata)
+
 
 ```
 
@@ -309,7 +329,7 @@ if (unique_brands <= 30) { # If brands are too many, you might not want to plot 
 ```{r}
 #Count the unique brands and determine number of plots
 brands <- unique(cardata$Brand)
-nbrands_per_plot <- 6
+n_brands_per_plot <- 6
 n_plots <- ceiling(length(brands) / n_brands_per_plot)
 
 #Create a list to store plots
@@ -317,20 +337,30 @@ plot_list <- list()
 
 #Create and store each plot in the list
 for (i in 1:n_plots) {
-  subset_brands <- brands[((i-1) * n_brands_per_plot + 1):(i * n_brands_per_plot)]
+  # Correcting index to make sure it does not go out of bounds
+  start_index <- (i - 1) * n_brands_per_plot + 1
+  end_index <- min(i * n_brands_per_plot, length(brands))
+  subset_brands <- brands[start_index:end_index]
   subset_data <- cardata %>% filter(Brand %in% subset_brands)
 
   plot_list[[i]] <- ggplot(subset_data, aes(x = Brand, y = Price)) +
     geom_boxplot() +
     theme_minimal() +
-    labs(title = paste("Boxplot of Prices for Brands", (i-1) * n_brands_per_plot + 1, "to", min(i * n_brands_per_plot, length(brands))),
+    labs(title = paste("Boxplot of Prices for Brands", start_index, "to", end_index),
          x = "Brand",
-         y = "Price")
+         y = "Price") +
+    scale_y_continuous(breaks = seq(100000, 600000, by = 100000), 
+                       labels = c("100,000", "200,000", "300,000", "400,000", "500,000", "600,000"))
 }
 
 #Print or save plots
 #For example, to print the first plot:
 print(plot_list[[1]])
+print(plot_list[[2]])
+print(plot_list[[3]])
+print(plot_list[[4]])
+print(plot_list[[5]])
+print(plot_list[[6]])
 
 #To save all plots to files
 for (i in seq_along(plot_list)) {
@@ -338,6 +368,17 @@ for (i in seq_along(plot_list)) {
 }
 ```
 
+
+
+```{r}
+scatter_plot <- ggplot(cardata, aes(x = Year, y = Price)) +
+  geom_point() +  # Adds points to the scatterplot
+  theme_minimal() +  # Applies a minimal theme for aesthetic purposes
+  labs(title = "Car Prices Over Years",
+       x = "Year",
+       y = "Price ($)")  # Labels for the plot
+scatter_plot
+```
 
 
 
