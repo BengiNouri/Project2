@@ -5,10 +5,65 @@ date: "2024-04-25"
 output: html_document
 ---
 
+```{r}
+### Polynomial Exercise 6 
+library(boot)
+### Regression ch 7 EX solutions 
+library(splines)
+### Smoothing splines: ch 7 EX solutions
+library(gam)
+#Detech mgcv because it interacts with gam
+#detach("package:mgcv", unload = TRUE)
+library('mgcv')
+#Tree based methods on carseats dataset 
+library(tree)
+library(rpart)
+# Application in R - Randomforest
+library(randomForest)
+# Application R - Boosting
+library(gbm)
+library(dplyr)
+library(ggplot2)
+library(ranger)
+library(h2o)
+# Application HOM Boosting without 
+library(xgboost)
+library(caret)
+library(rsample)
+library(foreach)
+library(doParallel)
+### Case study Tree - Predicting Algae blooms
+library(DMwR2)
+# displaying missing data
+library(DataExplorer)
+## QQ 
+library(car)
+## Boxplot distribution 
+library(lattice)
+# Categorial variables to displayed in a particular order
+library(forcats)
+# To fill NAs based on correlation
+library(corrplot)
+# Growing a regression tree
+library(rpart.plot)
+# SVM 
+library(e1071)
+# ROC curves - Chagning Gramma settings 
+library(ROCR)
+# ROC and AU with caTools
+library(caTools)
+# More SVM
+library(kernlab)
+library(pdp)
+library(vip)
+```
+
+
 # Loading the data
 ```{r}
 library(readr)
 cardata <- read_csv("Car_data4.csv")
+
 ```
 
 # Data preprocessing 
@@ -206,7 +261,8 @@ cardata <- cardata %>%
 ```{r}
 library(tidyverse)
 library(DataExplorer)
-cardata$Price <- as.numeric(cardata$Price)
+cardata <- cardata %>%
+  mutate(Price = as.numeric(gsub("\\.", "", Price)))
 plot_histogram(cardata$Price)
 plot_histogram(cardata)
 
