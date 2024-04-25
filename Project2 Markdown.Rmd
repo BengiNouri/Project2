@@ -215,7 +215,6 @@ print(cardata)
 
 ```{r}
 plot_bar(cardata, nrow = 3L, ncol = 3L) # Skal flyttes til EDA 
-zero_count <- sum(cardata$'KM Driven' == 0) 
 ```
 
 
@@ -249,7 +248,7 @@ cardata$`El-Ruder`= NULL
 ### Creating a new variable based for the Range (eletric) variable 
 
 
-### How many Cares have zero KL/L and deleling them 
+### How many Cares have zero KL/L and deleting them 
 ```{r}
 # Assuming 'cardata' is your dataframe and 'Km driven' is the column of interest
 
