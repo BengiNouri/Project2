@@ -70,6 +70,7 @@ cardata <- read_csv("Car_data4.csv")
 
 ```{r}
 library(dplyr)
+library(stringr)
 cardata <- cardata %>%
   mutate(Year = case_when(
     # When the format is four digits, take as is
@@ -265,8 +266,6 @@ cardata <- cardata %>%
   mutate(Price = as.numeric(gsub("\\.", "", Price)))
 plot_histogram(cardata$Price)
 plot_histogram(cardata)
-
-cardata$Price <- cardata$Price * 1000
 
 ```
 
