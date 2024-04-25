@@ -214,8 +214,8 @@ print(cardata)
 
 
 ```{r}
-plot_bar(cardata, nrow = 3L, ncol = 3L)
-zero_count <- sum(cardata$'KM Driven' == 0)
+plot_bar(cardata, nrow = 3L, ncol = 3L) # Skal flyttes til EDA 
+zero_count <- sum(cardata$'KM Driven' == 0) 
 ```
 
 
