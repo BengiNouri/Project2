@@ -213,6 +213,12 @@ print(cardata)
 ```
 
 
+```{r}
+plot_bar(cardata, nrow = 3L, ncol = 3L)
+zero_count <- sum(cardata$'KM Driven' == 0)
+```
+
+
 ### Deleting variables - and color. 
 
 ```{r}
@@ -236,8 +242,8 @@ cardata$Blindvinkelassistent <- NULL
 cardata$'Digital Instrumentering' <- NULL
 cardata$'Electronic Trunk Opener'  <- NULL
 cardata$Color = NULL
-cardata$closest_color = NULL
-cardata$StandardizedColor = NULL
+cardata$`Electronic Trunck Opener`= NULL 
+cardata$`El-Ruder`= NULL
 ```
 
 ### Creating a new variable based for the Range (eletric) variable 
@@ -250,11 +256,9 @@ cardata$StandardizedColor = NULL
 # Counting the zeros in the 'Km driven' column
 zero_count <- sum(cardata$`KM Driven` == 0)
 
-# Printing the result
-print(paste("The number of zeros in 'Km driven' is:", zero_count))
 
-cardata <- cardata %>% 
-  filter(cardata$`KM Driven` !=0)
+cardata <- cardata %>%
+  filter('KM Driven' != 0)
  
 ```
 
@@ -319,10 +323,6 @@ sort(table(cardata$Fuel_Type))
 
 
 ```
-
-
-
-
 ### Detecting outliers by brand 
 ```{r}
 
@@ -340,7 +340,7 @@ third_quartile <- quantiles[2]
 OutlierUpper <- third_quartile + (1.5 * (third_quartile - first_quartile))
 OutlierLower <- first_quartile - (1.5 * (third_quartile - first_quartile))
 cardata <- cardata %>%
-  filter(cardata$Price < OutlierUpper)
+  filter(Price < OutlierUpper)
 
 
 # Create a scatter plot for 'Price' with 'Brand' on the x-axis
@@ -357,29 +357,9 @@ p
 
 ```
 
-
-
 # EDA
 
 ## Plots
-
-```{r}
-
-# Remove non-numeric characters like currency symbols, commas, etc.
-# Then convert the Price column to numeric.
-cardata$Price <- as.numeric(gsub("[^0-9.]", "", cardata$Price))
-
-# Now try plotting again, but let's make sure that the Brand factor levels are not too many for a readable plot
-unique_brands <- length(unique(cardata$Brand))
-if (unique_brands <= 30) { # If brands are too many, you might not want to plot them directly
-  plot(cardata$Price, cardata$Brand)
-} else {
-  print(paste("Too many unique brands to plot:", unique_brands))
-}
-
-
-
-```
 
 ```{r}
 #Count the unique brands and determine number of plots
@@ -436,6 +416,9 @@ scatter_plot
 ```
 
 
+```{r}
+
+```
 
 
 
