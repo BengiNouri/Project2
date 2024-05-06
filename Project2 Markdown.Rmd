@@ -242,8 +242,8 @@ cardata$'Digital Instrumentering' <- NULL
 cardata$'Electronic Trunk Opener'  <- NULL
 cardata$Color = NULL
 cardata$`Electronic Trunck Opener`= NULL 
-cardata$`El-Ruder= NULL¨
-cardata$Variant= NULL
+cardata$'El-Ruder' = NULL
+cardata$Variant = NULL
 ```
 
 ### Creating a new variable based for the Range (eletric) variable 
@@ -326,27 +326,28 @@ sort(table(cardata$Fuel_Type))
 ```
 ### Detecting outliers by brand 
 ```{r}
-
-library(plotly)
 library(dplyr)
-# Assuming 'cardata' is your dataframe, 'Brand' is the column with car brands, and 'Price' is the column of interest
+library(plotly)
 
-# Calculate the mean, median, 1st quartile (25th percentile), 3rd quartile (75th percentile), and 90th percentile of the 'Price' column
-mean_price <- mean(cardata$Price, na.rm = TRUE)
-median_price <- median(cardata$Price, na.rm = TRUE)
-quantiles <- quantile(cardata$Price, probs = c(0.25, 0.75), na.rm = TRUE)
-first_quartile <- quantiles[1]
-third_quartile <- quantiles[2]
 
-OutlierUpper <- third_quartile + (1.5 * (third_quartile - first_quartile))
-OutlierLower <- first_quartile - (1.5 * (third_quartile - first_quartile))
-cardata <- cardata %>%
-  filtergc
+# Function to calculate and remove outliers within each brand group
+remove_outliers <- function(data) {
+  q1 <- quantile(data$Price, 0.25, na.rm = TRUE)
+  q3 <- quantile(data$Price, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  upper <- q3 + 1.5 * iqr
+  lower <- q1 - 1.5 * iqr
+  return(data[data$Price < upper & data$Price > lower, ])
+}
 
+# Apply the function to each brand group
+filtered_cardata <- cardata %>% 
+  group_by(Brand) %>% 
+  do(remove_outliers(.))
 
 # Create a scatter plot for 'Price' with 'Brand' on the x-axis
-p <- plot_ly(cardata, x = ~Brand, y = ~Price, type = 'scatter', mode = 'markers',
-             text = ~Brand, hoverinfo = 'text+y', marker = list(size = 5))
+p <- plot_ly(filtered_cardata, x = ~Brand, y = ~Price, type = 'scatter', mode = 'markers',
+             color = ~Brand, text = ~Brand, hoverinfo = 'text+y', marker = list(size = 5))
 
 # Customizing layout
 p <- p %>% layout(title = 'Price Outlier Detection by Brand',
