@@ -1,0 +1,443 @@
+---
+title: "DPS - Project 2"
+author: "Sajad, Mathias, Anders, Rasmus og Frederik"
+date: "2024-04-25"
+output: html_document
+---
+
+```{r}
+### Polynomial Exercise 6 
+library(boot)
+### Regression ch 7 EX solutions 
+library(splines)
+### Smoothing splines: ch 7 EX solutions
+library(gam)
+#Detech mgcv because it interacts with gam
+#detach("package:mgcv", unload = TRUE)
+library('mgcv')
+#Tree based methods on carseats dataset 
+library(tree)
+library(rpart)
+# Application in R - Randomforest
+library(randomForest)
+# Application R - Boosting
+library(gbm)
+library(dplyr)
+library(ggplot2)
+library(ranger)
+library(h2o)
+# Application HOM Boosting without 
+library(xgboost)
+library(caret)
+library(rsample)
+library(foreach)
+library(doParallel)
+### Case study Tree - Predicting Algae blooms
+library(DMwR2)
+# displaying missing data
+library(DataExplorer)
+## QQ 
+library(car)
+## Boxplot distribution 
+library(lattice)
+# Categorial variables to displayed in a particular order
+library(forcats)
+# To fill NAs based on correlation
+library(corrplot)
+# Growing a regression tree
+library(rpart.plot)
+# SVM 
+library(e1071)
+# ROC curves - Chagning Gramma settings 
+library(ROCR)
+# ROC and AU with caTools
+library(caTools)
+# More SVM
+library(kernlab)
+library(pdp)
+library(vip)
+```
+
+
+# Loading the data
+```{r}
+library(readr)
+cardata <- read_csv("Car_data4.csv")
+
+```
+
+# Data preprocessing 
+
+```{r}
+library(dplyr)
+library(stringr)
+cardata <- cardata %>%
+  mutate(Year = case_when(
+    # When the format is four digits, take as is
+    str_detect(`Production Year`, "^[0-9]{4}$") ~ str_extract(`Production Year`, "[0-9]{4}"),
+    # When the format is two digits
+    str_detect(`Production Year`, "[0-9]{2}$") ~ {
+      year_part <- str_extract(`Production Year`, "[0-9]{2}")
+      # Convert to four digits, assuming '20' for years 00-21 and '19' for years 22-99
+      if_else(as.numeric(year_part) <= 30, str_c("20", year_part), str_c("19", year_part))
+    },
+    # Set to NA if the year is not in the expected format
+    TRUE ~ as.character(NA)
+  ))
+```
+
+
+## removing Cars with certain production years and unnamed columns. 
+
+```{r}
+# We remove cars that are produced in 2024 and before 1990. 
+cardata <- cardata %>% filter(!(Year == 2024 | Year < 1990))
+cardata$`Unnamed: 57`= NULL
+cardata$`Unnamed: 58`= NULL
+
+```
+
+## Removing Ethanol cars
+
+```{r}
+cardata <- cardata[cardata$`Car Name` != "Renault Twingo 1,2 16V Authentique ECO2", ]
+
+```
+
+
+## Creating two new columns.
+```{r}
+library(tidyr)
+library(tidyverse)
+library(tidyr)
+library(dplyr)
+library(stringr)
+
+# Read the data (assuming the dataframe is named 'cardata')
+
+# Separate the 'Car Name' into 'Brand' and 'Model' with additional details
+cardata <- cardata %>%
+  separate(`Car Name`, into = c("Brand", "Model"), sep = " ", extra = "merge")
+
+# Function to handle Tesla brand exception
+clean_model <- function(brand, model) {
+  if (brand == "Tesla") {
+    # Match the model to either 'Model 3', 'Model Y', 'Model S', or 'Model X'
+    matched_model <- str_match(model, "(Model 3|Model Y|Model S|Model X)")[1]
+    if (!is.na(matched_model)) {
+      return(matched_model)
+    }
+  }
+  # Default case for non-Tesla or when no Tesla model is matched
+  return(word(model, 1))
+}
+
+# Apply the function to the 'Model' column to keep the exception for Tesla
+cardata <- cardata %>%
+  rowwise() %>%
+  mutate(Model = clean_model(Brand, Model))
+
+# View the updated dataframe
+print(cardata)
+
+
+```
+
+## convert year to numeric type
+
+```{r}
+# Convert Year to numeric type
+cardata$Year <- as.numeric(cardata$Year)
+cardata$`Production Year`= NULL
+```
+
+### Seperating Motor Size and fuel to two columns for themselves
+```{r}
+library(dplyr)
+library(stringr)
+
+# Adjusted code to remove the first numeric part and then separate motor size and fuel type
+cardata <- cardata %>%
+  mutate(
+    # Remove the first number (e.g., "2.5" in "2.5 Hybrid 144 kW 197 HK")
+    Motor_Specs_Cleaned = str_replace(`Motor Specs`, "^[0-9]+\\.[0-9]+\\s+", ""),
+    # Separate the fuel type from the remaining string
+    Fuel_Type = str_extract(Motor_Specs_Cleaned, "^\\D+"),
+    # Extract horsepower, which is the numeric value before "HK"
+    Horsepower = str_extract(Motor_Specs_Cleaned, "\\d+\\s?(?=HK)")
+  ) %>%
+  # Convert extracted horsepower to numeric, handling NAs
+  mutate(
+    Horsepower = ifelse(is.na(Horsepower), NA_real_, as.numeric(Horsepower))
+  )
+
+# Select only the relevant columns to keep the dataframe tidy
+cardata <- cardata %>%
+  select(-Motor_Specs_Cleaned)
+
+# Print out the updated dataframe to confirm changes
+print(cardata)
+
+```
+
+
+### Cleaning the names for Automatgear and manuelt Gear 
+```{r}
+################ Automatgear and manuelt gear cleaning. 
+
+cardata <- cardata %>%
+  mutate(Gear = case_when(
+    str_detect(Gear, "Automatgear") ~ "Automatgear",
+    str_detect(Gear, "Manuelt gear") ~ "Manuelt gear",
+    TRUE ~ as.character(NA) # Set to NA if neither pattern matches
+  ))
+```
+
+### Adjustig Fuel_type and Km/L to corresponds right 
+
+```{r}
+library(dplyr)
+
+# Update cardata by setting Km/L to NA when Fuel_Type is "EL"
+cardata <- cardata %>%
+  mutate(
+    `Km/L` = gsub("\\n\\*", "", `Km/L`), # Remove any line break and asterisk from Km/L
+    `Km/L` = ifelse(Fuel_Type == "EL", NA, as.numeric(`Km/L`)) # Set Km/L to NA for electric vehicles
+  )
+
+# Ensure that 'Km/L' is properly referenced with backticks because it contains a special character.
+# Print out the updated dataframe to confirm changes
+print(cardata)
+
+
+```
+
+
+```{r}
+plot_bar(cardata, nrow = 3L, ncol = 3L) # Skal flyttes til EDA 
+```
+
+
+### Deleting variables - and color. 
+
+```{r}
+cardata$ABS <- NULL
+cardata$Alarm <- NULL
+cardata$Aircondition <- NULL
+cardata$`Alloy Rim` <- NULL
+cardata$Bluetooth <- NULL
+cardata$Centrallock <- NULL
+cardata$Elruder <- NULL
+cardata$`El-spejle` <- NULL
+cardata$Kurvelys <- NULL
+cardata$Kørecomputer <- NULL
+cardata$Multifunktionsrat <- NULL
+cardata$Servo <- NULL
+cardata$`Stop&Go` <- NULL
+cardata$`Vejbane Advarselssystem` <- NULL
+cardata$'Sport Seats' <- NULL
+cardata$'Reverse Camera' <- NULL
+cardata$Blindvinkelassistent <- NULL
+cardata$'Digital Instrumentering' <- NULL
+cardata$'Electronic Trunk Opener'  <- NULL
+cardata$Color = NULL
+cardata$`Electronic Trunck Opener`= NULL 
+cardata$'El-Ruder' = NULL
+cardata$Variant = NULL
+```
+
+### Creating a new variable based for the Range (eletric) variable 
+
+
+### How many Cares have zero KL/L and deleting them & Fixing Range variable
+```{r}
+# Assuming 'cardata' is your dataframe and 'Km driven' is the column of interest
+
+# Counting the zeros in the 'Km driven' column
+zero_count <- sum(cardata$`KM Driven` == 0)
+
+
+cardata <- cardata %>%
+  filter('KM Driven' != 0)
+
+cardata$`Range (Electric)` <- gsub(" Km", "", cardata$`Range (Electric)`)
+cardata$`Range (Electric)` <- as.numeric(gsub(" Km", "", cardata$`Range (Electric)`))
+
+str(cardata)
+```
+
+### Setting the price to numeric and ploting the variables
+```{r}
+library(tidyverse)
+library(DataExplorer)
+cardata <- cardata %>%
+  mutate(Price = as.numeric(gsub("\\.", "", Price)))
+plot_histogram(cardata$Price)
+plot_histogram(cardata)
+
+```
+
+
+### Lumping method to delete cars that appears less than 45 times based on the brand 
+
+```{r}
+library(dplyr)
+
+# Assuming 'Brand' is the column that contains the car brands and 'cardata' is your dataframe.
+# First, count the number of occurrences of each brand.
+brand_counts <- cardata %>%
+  count(Brand)
+
+# Filter out brands that appear less than 50 times.
+brands_to_keep <- brand_counts %>%
+  filter(n >= 45) %>%
+  select(Brand)
+
+# Now, filter the original data to keep only those rows with brands that appear 45 times or more.
+cardata <- cardata %>%
+  semi_join(brands_to_keep, by = "Brand")
+
+```
+
+
+```{r}
+sort(table(cardata$Fuel_Type))
+library(dplyr)
+library(stringr) # for string manipulation functions
+
+# Standardize the Fuel_Type column
+cardata <- cardata %>%
+  mutate(
+    Fuel_Type = str_trim(gsub("\\n", "", Fuel_Type)), # Remove newlines and trim white spaces
+    Fuel_Type = case_when(
+      str_detect(Fuel_Type, "Hybrid") ~ "Hybrid",
+      str_detect(Fuel_Type, "El/Diesel") ~ "Hybrid",
+      str_detect(Fuel_Type, "El/Benzin") ~ "Hybrid",
+      str_detect(Fuel_Type, "El") ~ "El",
+      str_detect(Fuel_Type, "Diesel") ~ "Diesel",
+      str_detect(Fuel_Type, "Benzin") ~ "Benzin",
+      TRUE ~ Fuel_Type # catch-all to keep other types as they are
+    )
+  )
+
+# Now let's see the cleaned-up table for Fuel_Type
+sort(table(cardata$Fuel_Type))
+
+```
+### Detecting outliers by brand 
+```{r}
+library(dplyr)
+library(plotly)
+
+
+# Function to calculate and remove outliers within each brand group
+remove_outliers <- function(data) {
+  q1 <- quantile(data$Price, 0.25, na.rm = TRUE)
+  q3 <- quantile(data$Price, 0.75, na.rm = TRUE)
+  iqr <- q3 - q1
+  upper <- q3 + 1.5 * iqr
+  lower <- q1 - 1.5 * iqr
+  return(data[data$Price < upper & data$Price > lower, ])
+}
+
+# Apply the function to each brand group
+filtered_cardata <- cardata %>% 
+  group_by(Brand) %>% 
+  do(remove_outliers(.))
+
+# Create a scatter plot for 'Price' with 'Brand' on the x-axis
+p <- plot_ly(filtered_cardata, x = ~Brand, y = ~Price, type = 'scatter', mode = 'markers',
+             color = ~Brand, text = ~Brand, hoverinfo = 'text+y', marker = list(size = 5))
+
+# Customizing layout
+p <- p %>% layout(title = 'Price Outlier Detection by Brand',
+                  xaxis = list(title = 'Brand', tickangle = -45),
+                  yaxis = list(title = 'Price'))
+
+# Make the plot interactive
+p
+
+```
+
+# EDA
+
+## Plots
+
+```{r}
+#Count the unique brands and determine number of plots
+brands <- unique(cardata$Brand)
+n_brands_per_plot <- 6
+n_plots <- ceiling(length(brands) / n_brands_per_plot)
+
+#Create a list to store plots
+plot_list <- list()
+
+#Create and store each plot in the list
+for (i in 1:n_plots) {
+  # Correcting index to make sure it does not go out of bounds
+  start_index <- (i - 1) * n_brands_per_plot + 1
+  end_index <- min(i * n_brands_per_plot, length(brands))
+  subset_brands <- brands[start_index:end_index]
+  subset_data <- cardata %>% filter(Brand %in% subset_brands)
+
+  plot_list[[i]] <- ggplot(subset_data, aes(x = Brand, y = Price)) +
+    geom_boxplot() +
+    theme_minimal() +
+    labs(title = paste("Boxplot of Prices for Brands", start_index, "to", end_index),
+         x = "Brand",
+         y = "Price") +
+    scale_y_continuous(breaks = seq(100000, 600000, by = 100000), 
+                       labels = c("100,000", "200,000", "300,000", "400,000", "500,000", "600,000"))
+}
+
+#Print or save plots
+#For example, to print the first plot:
+print(plot_list[[1]])
+print(plot_list[[2]])
+print(plot_list[[3]])
+print(plot_list[[4]])
+print(plot_list[[5]])
+print(plot_list[[6]])
+
+#To save all plots to files
+for (i in seq_along(plot_list)) {
+  ggsave(filename = paste("brand_boxplot", i, ".png", sep = ""), plot = plot_list[[i]], width = 10, height = 6)
+}
+```
+
+
+
+```{r}
+scatter_plot <- ggplot(cardata, aes(x = Year, y = Price)) +
+  geom_point() +  # Adds points to the scatterplot
+  theme_minimal() +  # Applies a minimal theme for aesthetic purposes
+  labs(title = "Car Prices Over Years",
+       x = "Year",
+       y = "Price ($)")  # Labels for the plot
+scatter_plot
+```
+
+### Data seperation between fuel type and range 
+#### PS slet de data, som tilhøre de respektive andele for de nye data. 
+
+```{r}
+#Assuming 'cardata' is your original dataframe
+#Create a new dataset for fuel types Benzin, Diesel, and Hybrid
+car_data_bdh <- cardata %>%
+  filter(Fuel_Type %in% c("Benzin", "Diesel", "Hybrid"))
+
+#Create a new dataset for fuel type El (Electric)
+car_data_el <- cardata %>%
+  filter(Fuel_Type == "El")
+
+#You can check the first few rows of each dataset to confirm
+print(head(fuel_data_bdh))
+print(head(fuel_data_el))
+
+```
+
+###
+```{r}
+
+```
+
