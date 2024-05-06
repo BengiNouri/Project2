@@ -242,7 +242,7 @@ cardata$'Digital Instrumentering' <- NULL
 cardata$'Electronic Trunk Opener'  <- NULL
 cardata$Color = NULL
 cardata$`Electronic Trunck Opener`= NULL 
-cardata$`El-Ruder`= NULL¨
+cardata$`El-Ruder= NULL¨
 cardata$Variant= NULL
 ```
 
