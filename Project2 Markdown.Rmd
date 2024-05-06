@@ -249,7 +249,7 @@ cardata$Variant= NULL
 ### Creating a new variable based for the Range (eletric) variable 
 
 
-### How many Cares have zero KL/L and deleting them 
+### How many Cares have zero KL/L and deleting them & Fixing Range variable
 ```{r}
 # Assuming 'cardata' is your dataframe and 'Km driven' is the column of interest
 
@@ -259,7 +259,11 @@ zero_count <- sum(cardata$`KM Driven` == 0)
 
 cardata <- cardata %>%
   filter('KM Driven' != 0)
- 
+
+cardata$`Range (Electric)` <- gsub(" Km", "", cardata$`Range (Electric)`)
+cardata$`Range (Electric)` <- as.numeric(gsub(" Km", "", cardata$`Range (Electric)`))
+
+str(cardata)
 ```
 
 ### Setting the price to numeric and ploting the variables
